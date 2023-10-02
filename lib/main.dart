@@ -52,16 +52,8 @@ class _ScreenState extends State<Screen> {
             },
             child: ListTile(
               title: Text(tmp.getShoppingList[index].name),
-              leading: Column(
-                children: [
-                  CircleAvatar(
-                    child: Text("${tmp.getShoppingList[index].sum}"),
-                  ),
-                  CircleAvatar(
-                    child: Text("${tmp.getShoppingList[index].price}"),
-                  ),
-                ],
-              ),
+              // Menampilkan harga di sebelah teks nama
+              subtitle: Text('Price: ${tmp.getShoppingList[index].price.toStringAsFixed(2)}'),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return ItemsScreen(tmp.getShoppingList[index]);
