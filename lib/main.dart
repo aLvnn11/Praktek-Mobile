@@ -1,99 +1,109 @@
-import 'dart:async';
+import 'package:basic/components/MyProvider.dart';
+import 'package:basic/components/db.helper.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinbox/flutter_spinbox.dart';
+import 'package:basic/components/ShoppingList.dart';
+import 'package:provider/provider.dart';
+import 'package:basic/components/ItemScreen.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'package:basic/components/ShoppingListDialog.dart';
+
+class Screen extends StatefulWidget {
+  const Screen({Key? key}) : super(key: key);
+
+  @override
+  State<Screen> createState() => _ScreenState();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class _ScreenState extends State<Screen> {
+  int id = 0;
+
+  DBHelper _dbHelper = DBHelper();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Stream Spin Box',
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
+    var tmp = Provider.of<ListProductProvider>(context, listen: true);
+    _dbHelper.getmyShoppingList().then((value) => tmp.setShoppingList = value);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Shopping List'),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.delete),
+            tooltip: 'Delete All',
+            onPressed: () {
+              _dbHelper.deleteDB();
+            },
+          ),
+        ],
       ),
-      home: const MyHomePage(),
+      body: ListView.builder(
+          itemCount:
+              tmp.getShoppingList != null ? tmp.getShoppingList.length : 0,
+          itemBuilder: (BuildContext context, int index) {
+            return Dismissible(
+                key: Key(tmp.getShoppingList[index].id.toString()),
+                onDismissed: (direction) {
+                  String tmpName = tmp.getShoppingList[index].name;
+                  int tmpId = tmp.getShoppingList[index].id;
+                  setState(() {
+                    tmp.deletedById(tmp.getShoppingList[index]);
+                  });
+                  _dbHelper.deletedShoppingList(tmpId);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('$tmpName deleted'),
+                  ));
+                },
+                child: ListTile(
+                  title: Text(tmp.getShoppingList[index].name),
+                  leading: Column(
+                    children: [
+                      CircleAvatar(
+                        child: Text("${tmp.getShoppingList[index].sum}"),
+                      ),
+                      CircleAvatar(
+                        child: Text("${tmp.getShoppingList[index].price}"),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.push(context,
+                        MaterialPageRoute(builder: (context) {
+                      return ItemsScreen(tmp.getShoppingList[index]);
+                    }));
+                  },
+                  trailing: IconButton(
+                      icon: Icon(Icons.edit),
+                      onPressed: () {
+                        showDialog(
+                            context: context,
+                            builder: (context) {
+                              return ShoppingListDialog(_dbHelper).buildDialog(
+                                  context, tmp.getShoppingList[index], false);
+                            });
+                        _dbHelper
+                            .getmyShoppingList()
+                            .then((value) => tmp.setShoppingList = value);
+                      }),
+                ));
+          }),
+      floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            await showDialog(
+                context: context,
+                builder: (context) {
+                  return ShoppingListDialog(_dbHelper)
+                      .buildDialog(context, ShoppingList(++id, "", 0, 0), true);
+                });
+            _dbHelper
+                .getmyShoppingList()
+                .then((value) => tmp.setShoppingList = value);
+          },
+          child: Icon(Icons.add)),
     );
   }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key}) : super(key: key);
-
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  final StreamController<double> _streamController = StreamController<double>();
-  double _score = 0.0;
 
   @override
   void dispose() {
-    _streamController.close();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Flutter Stream Spin Box'),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Center(
-          child: Column(
-            children: [
-              StreamBuilder<double>(
-                stream: _streamController.stream,
-                builder: (context, snapshot) {
-                  final value = snapshot.data ?? 0.0;
-                  return Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(color: Colors.red[200]),
-                    child: value == 10.0
-                        ? Image.asset(
-                            'assets/your_image.png', // Ganti dengan path gambar Anda
-                            width: 200.0,
-                            height: 200.0,
-                            fit: BoxFit.fitHeight,
-                          )
-                        : Center(
-                            child: Text(
-                              '$_score',
-                              style: TextStyle(fontSize: 24.0),
-                            ),
-                          ),
-                  );
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SpinBox(
-                  max: 10.0,
-                  min: 0.0,
-                  value: _score,
-                  decimals: 1,
-                  step: 0.1,
-                  decoration: InputDecoration(labelText: 'Decimal'),
-                  onChanged: (value) {
-                    _streamController.sink.add(value);
-                    setState(() {
-                      _score = value;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
